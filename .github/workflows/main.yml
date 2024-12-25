@@ -1,13 +1,10 @@
 name: Flutter Windows CI
-
 on:
   push:
   pull_request:
-
 jobs:
   build-and-release-windows:
     runs-on: windows-latest
-
     steps:
       - uses: subosito/flutter-action@v1.5.0
       - uses: actions/checkout@v2
@@ -23,38 +20,11 @@ jobs:
         run: flutter config --enable-windows-desktop
       - name: Build Artifacts
         run: flutter build windows --release
-      - name: Display Release Folder Files
-        run: dir build/windows/x64/runner/Release
-      - name: Set Environment Variables
-        run: |
-          $sourcePath = "$(Get-Location)/build/windows/x64/runner/Release"
-          echo "SOURCE_PATH=$sourcePath" >> $GITHUB_ENV
-        shell: pwsh
-      - name: Debug Source Path
-        run: |
-          echo "SOURCE_PATH=$env:SOURCE_PATH"
-          if (!(Test-Path -Path "$env:SOURCE_PATH")) {
-            Write-Host "Directory does not exist: $env:SOURCE_PATH"
-          } else {
-            Write-Host "Directory exists: $env:SOURCE_PATH"
-          }
-        shell: pwsh
-      - name: Compress Files
-        run: |
-          Compress-Archive -Path "$env:SOURCE_PATH" -DestinationPath "$(Get-Location)/Macos-Dock-main-windows.zip"
-        shell: pwsh
-      - name: Verify Archive Creation
-        run: |
-          if (!(Test-Path -Path "$(Get-Location)/Macos-Dock-main-windows.zip")) {
-            throw "Archive creation failed: $(Get-Location)/Macos-Dock-main-windows.zip"
-          } else {
-            Write-Host "Archive created successfully at: $(Get-Location)/Macos-Dock-main-windows.zip"
-          }
-        shell: pwsh
       - name: Windows Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/windows/x64/runner/Release/Macos-Dock-${{github.ref_name}}-windows.zip
+          files: build/windows/x64/runner/Release/**
+          fail_on_unmatched_files: false

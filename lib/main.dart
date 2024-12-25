@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 /// Entrypoint of the application.
@@ -27,13 +29,24 @@ class MyApp extends StatelessWidget {
               Icons.camera,
               Icons.photo,
             ],
-            builder: (e, isHovered, isDragging) {
+            builder: (e, isHovered, isDragging,index,getTranslationY,getScaledSize) {
               return AnimatedScale(
                 duration: const Duration(milliseconds: 200),
                 scale: isHovered ? 1.4 : (isDragging ? 1.2 : 1.0),
-                child: Container(
+                child: AnimatedContainer(
+                  duration: const Duration(
+                    milliseconds: 300,
+                  ),
+                  transform: Matrix4.identity()
+                    ..translate(
+                      0.0,
+                      getTranslationY(index),
+                      0.0,
+                    ),
+                  //height: getScaledSize(index),
+                  //width: getScaledSize(index),
+                  height:48,
                   constraints: const BoxConstraints(minWidth: 48),
-                  height: 48,
                   margin: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
@@ -72,7 +85,7 @@ class Dock<T extends Object> extends StatefulWidget {
   final List<T> items;
 
   /// Builder building the provided [T] item with states.
-  final Widget Function(T, bool isHovered, bool isDragging) builder;
+  final Widget Function(T, bool isHovered, bool isDragging,int index,dynamic getTranslationY,dynamic getScaledSize) builder;
 
   @override
   State<Dock<T>> createState() => _DockState<T>();
@@ -88,6 +101,77 @@ class _DockState<T extends Object> extends State<Dock<T>> {
 
   /// Tracks the original index of the dragging item.
   int? _draggedIndex;
+
+  late int? hoveredIndex;
+  late double baseItemHeight;
+  late double baseTranslationY;
+  late double verticalItemsPadding;
+
+  double getScaledSize(int index) {
+    return getPropertyValue(
+      index: index,
+      baseValue: baseItemHeight,
+      maxValue: 70,
+      nonHoveredMaxValue: 50,
+    );
+  }
+
+  double getTranslationY(int index) {
+    return getPropertyValue(
+      index: index,
+      baseValue: baseTranslationY,
+      maxValue: -22,
+      nonHoveredMaxValue: -14,
+    );
+  }
+
+  double getPropertyValue({
+    required int index,
+    required double baseValue,
+    required double maxValue,
+    required double nonHoveredMaxValue,
+  }) {
+    late final double propertyValue;
+
+    // 1.
+    if (hoveredIndex == null) {
+      return baseValue;
+    }
+
+    // 2.
+    final difference = (hoveredIndex! - index).abs();
+
+    // 3.
+    final itemsAffected = _items.length;
+
+    // 4.
+    if (difference == 0) {
+      propertyValue = maxValue;
+
+      // 5.
+    } else if (difference <= itemsAffected) {
+      final ratio = (itemsAffected - difference) / itemsAffected;
+
+      propertyValue = lerpDouble(baseValue, nonHoveredMaxValue, ratio)!;
+
+      // 6.
+    } else {
+      propertyValue = baseValue;
+    }
+
+    return propertyValue;
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    hoveredIndex = null;
+    baseItemHeight = 48;
+
+    //verticalItemsPadding = 10;
+    baseTranslationY = 0.0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -127,7 +211,7 @@ class _DockState<T extends Object> extends State<Dock<T>> {
                 dragAnchorStrategy: pointerDragAnchorStrategy,
                 feedback: Transform.scale(
                   scale: 1.2,
-                  child: widget.builder(_items[i], false, true),
+                  child: widget.builder(_items[i], false, true,i,getTranslationY,getScaledSize),
                 ),
                 onDragStarted: () {
                   setState(() {
@@ -147,10 +231,20 @@ class _DockState<T extends Object> extends State<Dock<T>> {
                 },
                 child: MouseRegion(
                   cursor: SystemMouseCursors.click,
+                  onEnter: ((event) {
+                    setState(() {
+                      hoveredIndex = i;
+                    });
+                  }),
+                  onExit: (event) {
+                    setState(() {
+                      hoveredIndex = null;
+                    });
+                  },
                   child: DragTarget<T>(
                     onWillAccept: (_) => false,
                     builder: (context, candidateData, rejectedData) {
-                      return widget.builder(_items[i], false, false);
+                      return widget.builder(_items[i], false, false,i,getTranslationY,getScaledSize);
                     },
                   ),
                 ),

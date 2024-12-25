@@ -21,18 +21,16 @@ jobs:
         run: flutter config --enable-windows-desktop
       - name: Build artifacts
         run: flutter build windows --release
-      - name: Debug Windows Build Output
-        run: dir build/windows/runner/Release
       - name: Archive Release
         uses: thedoctor0/zip-release@master
         with:
           type: 'zip'
-          filename: MacRecoveryX-${{github.ref_name}}-windows.zip
-          directory: build/windows/runner/Release
+          filename: Macos-Dock-${{github.ref_name}}-windows.zip
+          directory: windows
       - name: Windows Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/windows/runner/Release/MacRecoveryX-${{github.ref_name}}-windows.zip
+          files: windows/Macos-Dock-${{github.ref_name}}-windows.zip

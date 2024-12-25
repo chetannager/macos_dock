@@ -26,11 +26,11 @@ jobs:
         with:
           type: 'zip'
           filename: Macos-Dock-${{github.ref_name}}-windows.zip
-          directory: windows
+          directory: build/windows/runner/Release
       - name: Windows Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: windows/Macos-Dock-${{github.ref_name}}-windows.zip
+          files: Macos-Dock-${{github.ref_name}}-windows.zip

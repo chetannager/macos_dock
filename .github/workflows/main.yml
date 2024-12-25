@@ -24,7 +24,7 @@ jobs:
       - name: Build Artifacts
         run: flutter build windows --release
       - name: Display Release Folder
-        run: ls build/windows/x64/runner/Release
+        run: dir build/windows/x64/runner/Release
       - name: Archive Release
         run: Compress-Archive -Path build/windows/x64/runner/Release -DestinationPath Macos-Dock-${{github.ref_name}}-windows.zip
       - name: Windows Release

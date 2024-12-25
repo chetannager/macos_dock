@@ -39,4 +39,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: Macos-Dock-${{github.ref_name}}-windows.zip
+          files: build/windows/runner/Release/Macos-Dock-${{github.ref_name}}-windows.zip

@@ -1,17 +1,20 @@
-name: Flutter CI
+name: Flutter Windows CI
 
-on: push
+on:
+  push:
+  pull_request:
 
 jobs:
   build-and-release-windows:
     runs-on: windows-latest
 
     steps:
+      - uses: subosito/flutter-action@v1.5.0
       - uses: actions/checkout@v2
       - uses: subosito/flutter-action@v1
         with:
           channel: 'stable'
-          flutter-version: '3.19.1'
+          flutter-version: '${{ secrets.FLUTTER_VERSION }}'
       - name: Install project dependencies
         run: flutter pub get
       - name: Generate intermediates
@@ -20,19 +23,16 @@ jobs:
         run: flutter config --enable-windows-desktop
       - name: Build Artifacts
         run: flutter build windows --release
-      - name: Verify Build Output
-        run: |
-          if (!(Test-Path -Path "build/windows/runner/Release" -PathType Container)) {
-            Write-Error "Build output directory does not exist!"
-            exit 1
-          }
-        shell: pwsh
+      - name: Ensure Release Directory Exists
+        run: mkdir -p build/windows/runner/Release
       - name: Archive Release
-        uses: thedoctor0/zip-release@master
-        with:
-          type: 'zip'
-          filename: Macos-Dock-${{github.ref_name}}-windows.zip
-          directory: build/windows/runner/Release
+        if: always()
+        run: |
+          if [ -d "build/windows/runner/Release" ]; then
+            zip -r Macos-Dock-${{github.ref_name}}-windows.zip build/windows/runner/Release
+          else
+            echo "Directory build/windows/runner/Release does not exist."
+          fi
       - name: Windows Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')

@@ -22,11 +22,7 @@ jobs:
       - name: Clean Build
         run: flutter clean
       - name: Build Artifacts
-        run: flutter build windows --release --verbose
-      - name: Debug Build Output
-        run: |
-          echo "Listing build directory..."
-          dir build/windows/runner/Release
+        run: flutter build windows --release
       - name: Archive Release
         uses: thedoctor0/zip-release@master
         with:

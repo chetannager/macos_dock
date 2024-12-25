@@ -19,8 +19,6 @@ jobs:
         run: flutter pub run build_runner build --delete-conflicting-outputs
       - name: Enable Windows Build
         run: flutter config --enable-windows-desktop
-      - name: Clean Build
-        run: flutter clean
       - name: Build Artifacts
         run: flutter build windows --release
       - name: Archive Release

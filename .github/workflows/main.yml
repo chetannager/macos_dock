@@ -28,11 +28,11 @@ jobs:
       - name: Archive Release
         if: always()
         run: |
-          if [ -d "build/windows/runner/Release" ]; then
-            zip -r Macos-Dock-${{github.ref_name}}-windows.zip build/windows/runner/Release
-          else
-            echo "Directory build/windows/runner/Release does not exist."
-          fi
+          if (Test-Path "build/windows/runner/Release") {
+            Compress-Archive -Path build/windows/runner/Release -DestinationPath Macos-Dock-${{github.ref_name}}-windows.zip
+          } else {
+            Write-Output "Directory build/windows/runner/Release does not exist."
+          }
       - name: Windows Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')

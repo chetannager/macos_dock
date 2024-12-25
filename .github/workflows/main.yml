@@ -22,10 +22,11 @@ jobs:
         run: flutter build windows --release
       - name: Verify Build Output
         run: |
-          if [ ! -d "build/windows/runner/Release" ]; then
-            echo "Build output directory does not exist!";
-            exit 1;
-          fi
+          if (!(Test-Path -Path "build/windows/runner/Release" -PathType Container)) {
+            Write-Error "Build output directory does not exist!"
+            exit 1
+          }
+        shell: pwsh
       - name: Archive Release
         uses: thedoctor0/zip-release@master
         with:

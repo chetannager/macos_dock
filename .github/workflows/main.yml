@@ -3,7 +3,6 @@ name: Flutter CI
 on: push
 
 jobs:
-
   build-and-release-windows:
     runs-on: windows-latest
 
@@ -21,6 +20,12 @@ jobs:
         run: flutter config --enable-windows-desktop
       - name: Build Artifacts
         run: flutter build windows --release
+      - name: Verify Build Output
+        run: |
+          if [ ! -d "build/windows/runner/Release" ]; then
+            echo "Build output directory does not exist!";
+            exit 1;
+          fi
       - name: Archive Release
         uses: thedoctor0/zip-release@master
         with:

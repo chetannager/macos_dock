@@ -22,6 +22,8 @@ jobs:
         run: flutter config --enable-windows-desktop
       - name: Build Artifacts
         run: flutter build windows --release
+      - name: Display Build Information
+        run: dir build/windows/x64/runner/Release
       - name: Archive Release
         if: always()
         run: |

@@ -10,6 +10,9 @@ on:
           type: choice
           options:
           - exe
+        release_tag:
+          description: 'Release Tag (e.g., v1.0.0)'
+          required: true
 
 
 jobs:
@@ -33,22 +36,20 @@ jobs:
         run: flutter build windows --release
       - name: Display Build Information
         run: dir build/windows/x64/runner/Release
-      - name: Archive Information
-        run: Compress-Archive -Path build/windows/x64/runner/Release -DestinationPath build/windows/x64/runner/Release/${{github.ref_name}}-windows.zip
+      - name: Archive Build Artifacts
+        run: |
+          $tag_name=${{ github.event.inputs.release_tag || github.ref_name }}
+          Compress-Archive -Path build/windows/x64/runner/Release -DestinationPath build/windows/x64/runner/Release/${tag_name}-windows.zip
       - name: Display Build Information with Zip
         run: dir build/windows/x64/runner/Release
-      # - name: Archive Release
-      #   if: always()
-      #   run: |
-      #     if (Test-Path "build/windows/x64/runner/Release") {
-      #       Compress-Archive -Path build/windows/x64/runner/Release -DestinationPath ${{github.ref_name}}-windows.zip
-      #     } else {
-      #       Write-Output "Directory build/windows/x64/runner/Release does not exist."
-      #     }
       - name: Windows Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/windows/x64/runner/Release/${{github.ref_name}}-windows.zip
+          files: build/windows/x64/runner/Release/${{ github.event.inputs.release_tag || github.ref_name }}-windows.zip
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
+          name: Release ${{ github.event.inputs.release_tag || github.ref_name }}
+          body: |
+            Release created for tag: ${{ github.event.inputs.release_tag || github.ref_name }}
+            Build Type: ${{ github.event.inputs.build_type }}

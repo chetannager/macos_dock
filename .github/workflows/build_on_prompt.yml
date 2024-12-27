@@ -1,54 +1,65 @@
 name: Build on Prompt
 
 on:
-    workflow_dispatch:
-      inputs:
-        build_type:
-          description: 'Select Build Type'
-          required: true
-          default: 'exe'
-          type: choice
-          options:
+  # Allows the workflow to be triggered manually
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Select Build Type' # User selects the type of build
+        required: true
+        default: 'exe'
+        type: choice
+        options:
           - exe
-
+      release_tag:
+        description: 'Release Tag (e.g., v1.0.0)' # User optionally specifies the release tag
+        required: false
 
 jobs:
   build-and-release-windows:
     runs-on: windows-latest
-    if: inputs.build_type == 'exe'
+
     steps:
-      - uses: subosito/flutter-action@v1.5.0
+      # Checkout the repository to access source files
       - uses: actions/checkout@v2
+
+      # Set up Flutter environment
       - uses: subosito/flutter-action@v1
         with:
-          channel: 'stable'
-          flutter-version: '${{ secrets.FLUTTER_VERSION }}'
+          channel: 'stable' # Use the stable Flutter release channel
+          flutter-version: '${{ secrets.FLUTTER_VERSION }}' # Version from secrets
+
+      # Install Flutter dependencies
       - name: Install project dependencies
         run: flutter pub get
+
+      # Run code generation and handle potential conflicts
       - name: Generate intermediates
         run: flutter pub run build_runner build --delete-conflicting-outputs
+
+      # Enable Windows desktop build support
       - name: Enable Windows Build
         run: flutter config --enable-windows-desktop
+
+      # Build the release version of the Windows app
       - name: Build Artifacts
         run: flutter build windows --release
-      - name: Display Build Information
-        run: dir build/windows/x64/runner/Release
-      - name: Archive Information
-        run: Compress-Archive -Path build/windows/x64/runner/Release -DestinationPath build/windows/x64/runner/Release/${{github.ref_name}}-windows.zip
-      - name: Display Build Information with Zip
-        run: dir build/windows/x64/runner/Release
-      # - name: Archive Release
-      #   if: always()
-      #   run: |
-      #     if (Test-Path "build/windows/x64/runner/Release") {
-      #       Compress-Archive -Path build/windows/x64/runner/Release -DestinationPath ${{github.ref_name}}-windows.zip
-      #     } else {
-      #       Write-Output "Directory build/windows/x64/runner/Release does not exist."
-      #     }
+
+      # Archive the build artifacts into a zip file
+      - name: Archive Build Artifacts
+        run: |
+          $tag_name = "${{ github.event.inputs.release_tag || github.ref_name }}" # Use input tag or fallback to ref name
+          Compress-Archive -Path build/windows/x64/runner/Release -DestinationPath build/windows/x64/runner/Release/$tag_name-windows.zip
+
+      # Create a GitHub release using the archived build
       - name: Windows Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub token for authentication
         with:
-          files: build/windows/x64/runner/Release/${{github.ref_name}}-windows.zip
+          files: build/windows/x64/runner/Release/${{ github.event.inputs.release_tag || github.ref_name }}-windows.zip
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }} # Specify the tag name for the release
+          name: Release ${{ github.event.inputs.release_tag || github.ref_name }} # Release title
+          body: |
+            Release created for tag: ${{ github.event.inputs.release_tag || github.ref_name }}
+            Build Type: ${{ github.event.inputs.build_type }}

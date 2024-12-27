@@ -1,0 +1,356 @@
+name: Build on Prompt
+
+on:
+    workflow_dispatch:
+      inputs:
+        environment:
+          description: 'Select Env'
+          required: true
+          default: 'qa'
+          type: choice
+          options:
+          - qa
+          - prod
+          - preprod
+          
+        build_type:
+          description: 'Select Build Type'
+          required: true
+          default: 'both'
+          type: choice
+          options:
+          - apk
+          - ios
+          - both
+          - appbundle
+        
+        distribute_to_testflight:
+          description: 'Upload to TestFlight (only for iOS)'
+          required: false
+          default: false
+          type: boolean
+
+
+jobs:
+  build-and-distribute-bundle:
+    runs-on: ubuntu-latest
+    if: inputs.build_type == 'appbundle' || inputs.build_type == 'both'
+    steps:
+      # 8
+      - uses: actions/checkout@v3
+      # 9
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: "17.x"
+          cache: 'gradle'
+      # 10   
+      - uses: subosito/flutter-action@v2
+        with:
+          # 11
+          flutter-version: "3.19.1"
+          channel: 'stable'
+          cache: true
+      # 12
+      - name: Get dependencies
+        run: flutter pub get
+      
+      # 13
+      # Runs a set of commands using the runners shell
+      - name: Start release build
+        run: flutter build ${{inputs.build_type}} --release --dart-define=env=${{ inputs.environment }}
+      
+      # 14
+      - name: Firebase App Distribution
+        id: firebase
+        uses: wzieba/Firebase-Distribution-Github-Action@v1.7.0
+        with:
+          appId: ${{secrets.FIREBASE_APP_ID}}
+          serviceCredentialsFileContent: ${{ secrets.CREDENTIAL_FILE_CONTENT }}
+          groups: QA
+          file: build/app/outputs/bundle/release/app-release.aab
+      #15
+      # Send a notification on Slack 
+      - name: Send custom JSON data to Slack workflow
+        id: slack
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Congrats! :rocket: Your build is uploaded on Firebease\n*<https://console.firebase.google.com/u/0/project/weddingkart-c4c80/appdistribution/app/android:com.weddingkart.weddingkart/releases|Firebase Console link>*"
+                  }
+                },
+                {
+                  "type": "section",
+                    "text": {
+                    "type": "mrkdwn",
+                    "text": "*Branch:*\n${{ github.ref_name }}\n*Author:*\n${{ github.actor }}"
+                  },
+                  "accessory": {
+                    "type": "image",
+                    "image_url": "https://firebase.google.com/static/images/brand-guidelines/logo-vertical.png",
+                    "alt_text": "computer thumbnail"
+                  }
+                },
+                {
+                  "type": "rich_text",
+                  "elements": [
+                    {
+                      "type": "rich_text_section",
+                      "elements": [
+                        {
+                          "type": "text",
+                          "text": "Environment",
+                          "style": {
+                            "bold": true
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "text": " - ${{inputs.environment}} ◆ "
+                        },
+                        {
+                          "type": "text",
+                          "text": "Platform",
+                          "style": {
+                            "bold": true
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "text": " - APP BUNDLE"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Firebase Build Link"
+                  },
+                  "accessory": {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Download",
+                      "emoji": true
+                    },
+                    "value": "click_me_123",
+                    "action_id": "button-action",
+                    "style": "primary",
+                    "url": "${{steps.firebase.outputs.TESTING_URI}}"
+                    
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Download App Bunlde (expires in 1 hour)"
+                  },
+                  "accessory": {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Download",
+                      "emoji": true
+                    },
+                    "value": "click_me_123",
+                    "url": "${{steps.firebase.outputs.BINARY_DOWNLOAD_URI}}",
+                    "action_id": "button-action"
+                  }
+                }
+              ]
+            }                                    
+        env:
+          SLACK_WEBHOOK_URL: ${{secrets.SLACK_WEBHOOK}}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+  
+  build-and-distribute-apk:
+    runs-on: ubuntu-latest
+    if: inputs.build_type == 'apk'
+    steps:
+      # 8
+      - uses: actions/checkout@v3
+      # 9
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: "17.x"
+          cache: 'gradle'
+      # 10   
+      - uses: subosito/flutter-action@v2
+        with:
+          # 11
+          flutter-version: "3.19.1"
+          channel: 'stable'
+          cache: true
+      # 12
+      - name: Get dependencies
+        run: flutter pub get
+      
+      # 13
+      # Runs a set of commands using the runners shell
+      - name: Start release build
+        run: flutter build ${{inputs.build_type}} --release --dart-define=env=${{ inputs.environment }}
+      
+      # 14
+      - name: Firebase App Distribution
+        id: firebase
+        uses: wzieba/Firebase-Distribution-Github-Action@v1.7.0
+        with:
+          appId: ${{secrets.FIREBASE_APP_ID}}
+          serviceCredentialsFileContent: ${{ secrets.CREDENTIAL_FILE_CONTENT }}
+          groups: QA
+          file: build/app/outputs/apk/release/app-release.apk
+      #15
+      # Send a notification on Slack 
+      # Send a notification on Slack 
+      - name: Send custom JSON data to Slack workflow
+        id: slack
+        uses: slackapi/slack-github-action@v1.27.0
+        with:
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Congrats! :rocket: Your build is uploaded on Firebease\n*<https://console.firebase.google.com/u/0/project/weddingkart-c4c80/appdistribution/app/android:com.weddingkart.weddingkart/releases|Firebase Console link>*"
+                  }
+                },
+                {
+                  "type": "section",
+                    "text": {
+                    "type": "mrkdwn",
+                    "text": "*Branch:*\n${{ github.ref_name }}\n*Author:*\n${{ github.actor }}"
+                  },
+                  "accessory": {
+                    "type": "image",
+                    "image_url": "https://firebase.google.com/static/images/brand-guidelines/logo-vertical.png",
+                    "alt_text": "computer thumbnail"
+                  }
+                },
+                {
+                  "type": "rich_text",
+                  "elements": [
+                    {
+                      "type": "rich_text_section",
+                      "elements": [
+                        {
+                          "type": "text",
+                          "text": "Environment",
+                          "style": {
+                            "bold": true
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "text": " - ${{inputs.environment}} ◆ "
+                        },
+                        {
+                          "type": "text",
+                          "text": "Platform",
+                          "style": {
+                            "bold": true
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "text": " - APK"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Firebase Build Link"
+                  },
+                  "accessory": {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Download",
+                      "emoji": true
+                    },
+                    "value": "click_me_123",
+                    "action_id": "button-action",
+                    "style": "primary",
+                    "url": "${{steps.firebase.outputs.TESTING_URI}}"
+                    
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "Download APK File (expires in 1 hour)"
+                  },
+                  "accessory": {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Download",
+                      "emoji": true
+                    },
+                    "value": "click_me_123",
+                    "url": "${{steps.firebase.outputs.BINARY_DOWNLOAD_URI}}",
+                    "action_id": "button-action"
+                  }
+                }
+              ]
+            }                                    
+        env:
+          SLACK_WEBHOOK_URL: ${{secrets.SLACK_WEBHOOK}}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+  
+  build-and-distribute-ios:
+    runs-on: macos-latest
+    if: inputs.build_type == 'ios' && inputs.distribute_to_testflight == true || inputs.build_type == 'both' && inputs.distribute_to_testflight == true
+
+    env:
+      ASC_JSON_KEY: ${{ secrets.ASC_JSON_KEY }}
+      FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECFIC_PASSWORD }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set Xcode Version
+      run: sudo xcode-select --switch /Applications/Xcode_15.0.1.app
+
+    - uses: subosito/flutter-action@v2
+      with:
+        flutter-version: "3.19.1"
+        channel: 'stable'
+        cache: true
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Install Fastlane via Homebrew
+      run: brew install fastlane
+
+    - name: Distribute to TestFlight
+      env: 
+        MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+        MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+        ASC_JSON_KEY: ${{ secrets.ASC_JSON_KEY }}
+        FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECFIC_PASSWORD }}
+      run: |
+        cd ios
+        pod cache clean --all
+        rm -rf ios/Pods
+        pod install --repo-update
+        fastlane upload_on_testflight

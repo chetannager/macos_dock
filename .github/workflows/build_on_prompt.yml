@@ -3,20 +3,10 @@ name: Build on Prompt
 on:
     workflow_dispatch:
       inputs:
-        environment:
-          description: 'Select Env'
-          required: true
-          default: 'qa'
-          type: choice
-          options:
-          - qa
-          - prod
-          - preprod
-          
         build_type:
           description: 'Select Build Type'
           required: true
-          default: 'both'
+          default: 'exe'
           type: choice
           options:
           - exe

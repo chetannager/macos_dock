@@ -25,7 +25,7 @@ jobs:
       - name: Display Build Information
         run: dir build/windows/x64/runner/Release
       - name: Archive Information
-        run: Compress-Archive -Path build/windows/x64/runner/Release -DestinationPath ${{github.ref_name}}-windows.zip
+        run: Compress-Archive -Path build/windows/x64/runner/Release -DestinationPath build/windows/x64/runner/Release/${{github.ref_name}}-windows.zip
       - name: Display Build Information with Zip
         run: dir build/windows/x64/runner/Release
       - name: Archive Release

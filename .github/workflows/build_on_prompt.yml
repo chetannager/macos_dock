@@ -38,18 +38,22 @@ jobs:
         run: dir build/windows/x64/runner/Release
       - name: Archive Build Artifacts
         run: |
-          $tag_name=${{ github.event.inputs.release_tag || github.ref_name }}
+          $tag_name="${{ github.event.inputs.release_tag || github.ref_name }}"
           Compress-Archive -Path build/windows/x64/runner/Release -DestinationPath build/windows/x64/runner/Release/${tag_name}-windows.zip
       - name: Display Build Information with Zip
         run: dir build/windows/x64/runner/Release
+      - name: Set Release Tag
+        id: set_tag
+        run: |
+          echo "RELEASE_TAG=${{ github.event.inputs.release_tag || github.ref_name }}" >> $GITHUB_ENV
       - name: Windows Release
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/windows/x64/runner/Release/${{ github.event.inputs.release_tag || github.ref_name }}-windows.zip
-          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
-          name: Release ${{ github.event.inputs.release_tag || github.ref_name }}
+          files: build/windows/x64/runner/Release/${{ env.RELEASE_TAG }}-windows.zip
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Release ${{ env.RELEASE_TAG }}
           body: |
-            Release created for tag: ${{ github.event.inputs.release_tag || github.ref_name }}
+            Release created for tag: ${{ env.RELEASE_TAG }}
             Build Type: ${{ github.event.inputs.build_type }}

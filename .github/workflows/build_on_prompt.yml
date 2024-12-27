@@ -23,6 +23,7 @@ on:
           - ios
           - both
           - appbundle
+          - exe
         
         distribute_to_testflight:
           description: 'Upload to TestFlight (only for iOS)'

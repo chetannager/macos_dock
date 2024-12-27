@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: "MacOs Dock",
+      title: "MacOs Staging Dock",
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         backgroundColor: Colors.white,

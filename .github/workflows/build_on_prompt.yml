@@ -36,6 +36,8 @@ jobs:
       # Run code generation and handle potential conflicts
       - name: Generate intermediates
         run: flutter pub run build_runner build --delete-conflicting-outputs
+        run: flutter pub add firebase_core
+        run: flutter pub add firebase_messaging
 
       # Enable Windows desktop build support
       - name: Enable Windows Build
